@@ -1,110 +1,4 @@
 /* build: `node build.js modules=ALL exclude=gestures,accessors,erasing requirejs minifier=uglifyjs` */
-(function() {
-  const baseElm = {
-    style: {},
-
-    children: [],
-
-    className: "",
-
-    appendChild: function() {},
-    setAttribute: function() {},
-    replaceChild: function() {},
-    removeEventListener: function() {},
-    addEventListener: function() {},
-
-    getBoundingClientRect: function() {
-      return {
-        width: 0,
-        height: 0,
-        top: 0,
-        bottom: 0,
-        right: 0,
-        left: 0
-      };
-    }
-  };
-
-  const touchStarts = new Set(["mousedown", "touchstart"]);
-  const touchMoves = new Set(["mousemove", "touchmove"]);
-  const touchEnds = new Set(["mouseup", "touchend"]);
-  
-  /**
-   * 把 source 里 target 没有的属性赋给 target
-   */
-  function fillObj(target, source) {
-    for (let key of Object.getOwnPropertyNames(source)) {
-      if (!target[key]) {
-        target[key] = source[key];
-      }
-    }
-
-    return target;
-  }
-
-  window.mockDocument = {
-    createElement: function(tag) {
-      let elm = Object.assign({}, baseElm);
-
-      if (tag === "canvas") {
-        const canvas = window["__curHippySkiaCanvasInstance__"];
-        if (!canvas) return elm;
-
-        canvas._addEventListener = canvas.addEventListener || function() {};
-        canvas._removeEventListener = canvas.removeEventListener || function() {};
-        canvas.addEventListener = function(eventName, cb) {
-          if (touchStarts.has(eventName)) {
-            canvas._addEventListener("touchstart", cb);
-          } else if (touchMoves.has(eventName)) {
-            canvas._addEventListener("touchmove", cb);
-          } else if(touchEnds.has(eventName)) {
-            canvas._addEventListener("touchend", cb);
-          } else if (eventName === "touchcancel") {
-            canvas._addEventListener("touchcancel", cb);
-          }
-        }
-        canvas.removeEventListener = function(eventName, cb) {
-          if (!canvas._removeEventListener) return ;
-
-          if (touchStarts.has(eventName)) {
-            canvas._removeEventListener("touchstart", cb);
-          } else if (touchMoves.has(eventName)) {
-            canvas._removeEventListener("touchmove", cb);
-          } else if(touchEnds.has(eventName)) {
-            canvas._removeEventListener("touchend", cb);
-          } else if (eventName === "touchcancel") {
-            canvas._removeEventListener("touchcancel", cb);
-          }
-        }
-        elm = fillObj(canvas, elm);
-      }
-
-      return elm;
-    },
-  };
-  const documentElm = window.mockDocument.createElement("document");;
-  window.mockDocument = fillObj(window.mockDocument, documentElm);
-  window.mockDocument.documentElement = documentElm;
-
-  window.addEventListener = function() {};
-  window.removeEventListener = function() {};
-
-  window.performance = {
-    now: function() {
-      return Number(new Date());
-    }
-  }
-
-  window.devicePixelRatio = 3;
-
-  window.requestAnimationFrame = function(cb) {
-    return setTimeout(cb, 16);
-  };
-  window.cancelAnimationFrame = function(requestID) {
-    clearTimeout(requestID);
-  };
-})();
-
 /*! Fabric.js Copyright 2008-2015, Printio (Juriy Zaytsev, Maxim Chernyak) */
 
 var fabric = fabric || { version: '4.5.1' };
@@ -116,34 +10,32 @@ else if (typeof define === 'function' && define.amd) {
   define([], function() { return fabric; });
 }
 /* _AMD_END_ */
-// if (typeof document !== 'undefined' && typeof window !== 'undefined') {
-  fabric.document = window.mockDocument;
+if (typeof document !== 'undefined' && typeof window !== 'undefined') {
+  if (document instanceof (typeof HTMLDocument !== 'undefined' ? HTMLDocument : Document)) {
+    fabric.document = document;
+  }
+  else {
+    fabric.document = document.implementation.createHTMLDocument('');
+  }
   fabric.window = window;
-  // if (document instanceof (typeof HTMLDocument !== 'undefined' ? HTMLDocument : Document)) {
-  //   fabric.document = document;
-  // }
-  // else {
-  //   fabric.document = document.implementation.createHTMLDocument('');
-  // }
-  // fabric.window = window;
-// }
-// else {
-//   // assume we're running under node.js when document/window are not present
-//   var jsdom = require('jsdom');
-//   var virtualWindow = new jsdom.JSDOM(
-//     decodeURIComponent('%3C!DOCTYPE%20html%3E%3Chtml%3E%3Chead%3E%3C%2Fhead%3E%3Cbody%3E%3C%2Fbody%3E%3C%2Fhtml%3E'),
-//     {
-//       features: {
-//         FetchExternalResources: ['img']
-//       },
-//       resources: 'usable'
-//     }).window;
-//   fabric.document = virtualWindow.document;
-//   fabric.jsdomImplForWrapper = require('jsdom/lib/jsdom/living/generated/utils').implForWrapper;
-//   fabric.nodeCanvas = require('jsdom/lib/jsdom/utils').Canvas;
-//   fabric.window = virtualWindow;
-//   DOMParser = fabric.window.DOMParser;
-// }
+}
+else {
+  // assume we're running under node.js when document/window are not present
+  var jsdom = require('jsdom');
+  var virtualWindow = new jsdom.JSDOM(
+    decodeURIComponent('%3C!DOCTYPE%20html%3E%3Chtml%3E%3Chead%3E%3C%2Fhead%3E%3Cbody%3E%3C%2Fbody%3E%3C%2Fhtml%3E'),
+    {
+      features: {
+        FetchExternalResources: ['img']
+      },
+      resources: 'usable'
+    }).window;
+  fabric.document = virtualWindow.document;
+  fabric.jsdomImplForWrapper = require('jsdom/lib/jsdom/living/generated/utils').implForWrapper;
+  fabric.nodeCanvas = require('jsdom/lib/jsdom/utils').Canvas;
+  fabric.window = virtualWindow;
+  DOMParser = fabric.window.DOMParser;
+}
 
 /**
  * True when in environment that supports touch events

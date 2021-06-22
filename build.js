@@ -117,6 +117,7 @@ function ifSpecifiedInclude(moduleName, fileName) {
 }
 
 var filesToInclude = [
+  'src/polyfill.js',
   'HEADER.js',
   ifSpecifiedInclude('global', 'src/globalFabric.js'),
   ifSpecifiedInclude('gestures', 'lib/event.js'),
